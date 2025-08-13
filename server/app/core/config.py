@@ -14,7 +14,8 @@ class Settings(BaseSettings):
     
     # Traceroute Configuration
     max_hops: int = 30
-    timeout: int = 5
+    timeout: int = 3
+    command_timeout: int = 60
     
     class Config:
         env_file = ".env"
