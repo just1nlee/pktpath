@@ -2,6 +2,11 @@
 
 import dynamic from 'next/dynamic';
 import type { Position } from "@/components/globe";
+import { useState, useMemo } from 'react';
+import { GlobeConfig } from "@/components/globe";
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+
 
 // Dynamically import the globe component with SSR disabled
 const World = dynamic(() => import("@/components/globe").then(mod => ({ default: mod.World })), {
@@ -13,23 +18,79 @@ const World = dynamic(() => import("@/components/globe").then(mod => ({ default:
   )
 });
 
-export default function Home() {
-  const globeConfig = {
-    globeColor: "#1d072e",
-    showAtmosphere: true,
-    atmosphereColor: "#ffffff",
-    atmosphereAltitude: 0.1,
-    polygonColor: "rgba(255,255,255,0.7)",
-    ambientLight: "#ffffff",
-    directionalLeftLight: "#ffffff",
-    directionalTopLight: "#ffffff",
-    pointLight: "#ffffff",
-    autoRotate: true,
-    autoRotateSpeed: 1,
-  };
+const GLOBE_CONFIG = {
+  globeColor: "#1d072e",
+  showAtmosphere: true,
+  atmosphereColor: "#ffffff",
+  atmosphereAltitude: 0.1,
+  polygonColor: "rgba(255,255,255,0.7)",
+  ambientLight: "#ffffff",
+  directionalLeftLight: "#ffffff",
+  directionalTopLight: "#ffffff",
+  pointLight: "#ffffff",
+  autoRotate: true,
+  autoRotateSpeed: 1,
+};
 
-  // Empty data array for now - just showing the globe
-  const sampleData: Position[] = [];
+export default function Home() {
+  const [target, setTarget] = useState("");
+  const [tracerouteData, setTracerouteData] = useState<Position[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async () => {
+    // Check user input
+    if (!target.trim()) {
+      setError("Please enter a target");
+      return;
+    }
+
+    // Set loading state
+    setIsLoading(true);
+    setError(null);
+
+    // Make API request to backend
+    try {
+      const response = await fetch("http://localhost:8000/api/v1/traceroute/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ target: target.trim() }),
+      });
+      const data = await response.json();
+
+      // Verify response
+      if (!response.ok) {
+        throw new Error(data.detail || "Failed to run traceroute");
+      }
+      if (!data.success) {
+        throw new Error(data.error || "Traceroute failed");
+      }
+
+      // Format data for GitGlobe
+      const positions: Position[] = data.hops
+      .filter((hop: any) => hop.lat && hop.lng)
+      .map((hop: any, index: number) => ({
+        order: index,
+        startLat: hop.lat,
+        startLng: hop.lng,
+        endLat: hop.lat,
+        endLng: hop.lng,
+        arcAlt: 0.1,
+        color: '#ff6b6b'
+      }));
+
+      // Update state
+      setTracerouteData(positions);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      setTracerouteData([]);
+      // Revert loading state
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-black">
@@ -44,13 +105,27 @@ export default function Home() {
         </div>
 
         <div className="w-full h-[600px]">
-          <World globeConfig={globeConfig} data={sampleData} />
+          <World globeConfig={GLOBE_CONFIG} data={tracerouteData} />
         </div>
-
-        <div className="text-center mt-8">
-          <p className="text-gray-400">
-            A beautiful 3D globe ready for traceroute visualization
-          </p>
+        <div className="flex w-full max-w-sm items-center gap-2">
+          <Input 
+            placeholder="Enter a domain or IP address" 
+            value={target}
+            onChange={(e) => setTarget(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+          />
+          <Button 
+            onClick={handleSubmit}
+            disabled={isLoading}
+            variant="outline"
+          >
+            {isLoading ? 'Running...' : 'Submit'}
+          </Button>
+          {error && (
+            <div className="text-center mt-4">
+              <p className="text-red-400 text-sm">{error}</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
