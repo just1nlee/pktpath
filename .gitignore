@@ -1,0 +1,3 @@
+server/data/*.BIN
+server/data/*.IPV6.BIN
+server/data/*.mmdb
