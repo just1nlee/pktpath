@@ -1,15 +1,16 @@
 "use client";
 
 import dynamic from 'next/dynamic';
-import type { Position } from "@/components/globe";
+import React from "react";
+import { motion } from "motion/react";
+import type { Position } from "@/components/ui/globe";
 import { useState, useMemo } from 'react';
-import { GlobeConfig } from "@/components/globe";
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 
 
 // Dynamically import the globe component with SSR disabled
-const World = dynamic(() => import("@/components/globe").then(mod => ({ default: mod.World })), {
+const World = dynamic(() => import("@/components/ui/globe").then(mod => ({ default: mod.World })), {
   ssr: false,
   loading: () => (
     <div className="flex items-center justify-center h-full">
@@ -97,7 +98,7 @@ export default function Home() {
       <div className="max-w-6xl mx-auto p-8">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-white mb-2">
-            PktPath
+            pktpath
           </h1>
           <p className="text-lg text-gray-300">
             Visualize your packet's journey across the internet
@@ -109,6 +110,7 @@ export default function Home() {
         </div>
         <div className="flex w-full max-w-sm items-center gap-2">
           <Input 
+            type="text"
             placeholder="Enter a domain or IP address" 
             value={target}
             onChange={(e) => setTarget(e.target.value)}
@@ -126,6 +128,22 @@ export default function Home() {
               <p className="text-red-400 text-sm">{error}</p>
             </div>
           )}
+        </div>
+        
+        {/* IP2Location LITE Attribution */}
+        <div className="mt-8 text-center">
+          <p className="text-xs text-gray-500">
+            pktpath uses the{" "}
+            <a 
+              href="https://lite.ip2location.com" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-gray-400 hover:text-gray-300 underline"
+            >
+              IP2Location LITE database
+            </a>{" "}
+            for IP geolocation
+          </p>
         </div>
       </div>
     </div>

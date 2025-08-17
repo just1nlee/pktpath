@@ -7,6 +7,7 @@ router = APIRouter(prefix="/traceroute", tags=["traceroute"])
 
 class TracerouteRequest(BaseModel):
     target: str
+    include_geolocation: bool = True
 
 class TracerouteResponse(BaseModel):
     target: str
@@ -17,15 +18,18 @@ class TracerouteResponse(BaseModel):
 @router.post("/", response_model=TracerouteResponse)
 async def run_traceroute(request: TracerouteRequest):
     """
-    Run traceroute to a specified target
+    Run traceroute to a specified target with optional geolocation data
     """
     try:
         # Validate target
         if not request.target:
             raise HTTPException(status_code=400, detail="Target is required")
         
-        # Run traceroute
-        hops = TracerouteService.run_traceroute(request.target)
+        # Run traceroute with geolocation
+        hops = TracerouteService.run_traceroute(
+            request.target, 
+            include_geolocation=request.include_geolocation
+        )
         
         # Check for errors
         if hops and len(hops) == 1 and "error" in hops[0]:

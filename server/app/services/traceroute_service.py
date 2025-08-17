@@ -2,12 +2,13 @@ import subprocess
 import json
 from typing import List, Dict, Optional
 from app.core.config import settings
+from app.services.geolocation_service import GeolocationService
 
 class TracerouteService:
     @staticmethod
-    def run_traceroute(target: str) -> List[Dict]:
+    def run_traceroute(target: str, include_geolocation: bool = True) -> List[Dict]:
         """
-        Run traceroute command and return structured results
+        Run traceroute command and return structured results with geolocation data
         """
         try:
             # Run traceroute command with more lenient settings
@@ -38,7 +39,19 @@ class TracerouteService:
             for line in lines[1:]:
                 if line.strip():
                     hop_data = TracerouteService._parse_hop_line(line)
-                    if hop_data:
+                    if hop_data and hop_data.get("ip") != "*":
+                        # Add geolocation data if requested
+                        if include_geolocation:
+                            geo_data = GeolocationService.get_location(hop_data["ip"])
+                            hop_data["geolocation"] = geo_data
+                            
+                            # Add lat/lng for frontend compatibility
+                            hop_data["lat"] = geo_data.get("latitude")
+                            hop_data["lng"] = geo_data.get("longitude")
+                            
+                        hops.append(hop_data)
+                    elif hop_data:
+                        # Add hops with no response (marked as "*")
                         hops.append(hop_data)
             
             # If no hops were parsed, return an error

@@ -4,7 +4,7 @@ from typing import List
 class Settings(BaseSettings):
     # API Configuration
     api_v1_str: str = "/api/v1"
-    project_name: str = "PktPath API"
+    project_name: str = "pktpath API"
     
     # CORS Configuration
     allowed_origins: List[str] = [
