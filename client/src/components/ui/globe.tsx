@@ -103,10 +103,10 @@ export function Globe({ globeConfig, data }: WorldProps) {
       emissiveIntensity: number;
       shininess: number;
     };
-    globeMaterial.color = new Color(globeConfig.globeColor);
-    globeMaterial.emissive = new Color(globeConfig.emissive);
-    globeMaterial.emissiveIntensity = globeConfig.emissiveIntensity || 0.1;
-    globeMaterial.shininess = globeConfig.shininess || 0.9;
+    globeMaterial.color = new Color(globeConfig.globeColor || defaultProps.globeColor);
+    globeMaterial.emissive = new Color(globeConfig.emissive || defaultProps.emissive);
+    globeMaterial.emissiveIntensity = globeConfig.emissiveIntensity || defaultProps.emissiveIntensity;
+    globeMaterial.shininess = globeConfig.shininess || defaultProps.shininess;
   }, [
     isInitialized,
     globeConfig.globeColor,
@@ -115,7 +115,7 @@ export function Globe({ globeConfig, data }: WorldProps) {
     globeConfig.shininess,
   ]);
 
-  // Build data when globe is initialized or when data changes
+  // Build data when globe is initialized or when data or config changes
   useEffect(() => {
     if (!globeRef.current || !isInitialized || !data) return;
 
@@ -125,14 +125,14 @@ export function Globe({ globeConfig, data }: WorldProps) {
       const arc = arcs[i];
       const rgb = hexToRgb(arc.color) as { r: number; g: number; b: number };
       points.push({
-        size: defaultProps.pointSize,
+        size: globeConfig.pointSize || defaultProps.pointSize,
         order: arc.order,
         color: arc.color,
         lat: arc.startLat,
         lng: arc.startLng,
       });
       points.push({
-        size: defaultProps.pointSize,
+        size: globeConfig.pointSize || defaultProps.pointSize,
         order: arc.order,
         color: arc.color,
         lat: arc.endLat,
@@ -154,10 +154,10 @@ export function Globe({ globeConfig, data }: WorldProps) {
       .hexPolygonsData(countries.features)
       .hexPolygonResolution(3)
       .hexPolygonMargin(0.7)
-      .showAtmosphere(defaultProps.showAtmosphere)
-      .atmosphereColor(defaultProps.atmosphereColor)
-      .atmosphereAltitude(defaultProps.atmosphereAltitude)
-      .hexPolygonColor(() => defaultProps.polygonColor);
+      .showAtmosphere(globeConfig.showAtmosphere !== undefined ? globeConfig.showAtmosphere : defaultProps.showAtmosphere)
+      .atmosphereColor(globeConfig.atmosphereColor || defaultProps.atmosphereColor)
+      .atmosphereAltitude(globeConfig.atmosphereAltitude || defaultProps.atmosphereAltitude)
+      .hexPolygonColor(() => globeConfig.polygonColor || defaultProps.polygonColor);
 
     globeRef.current
       .arcsData(data)
@@ -168,38 +168,38 @@ export function Globe({ globeConfig, data }: WorldProps) {
       .arcColor((e: any) => (e as { color: string }).color)
       .arcAltitude((e) => (e as { arcAlt: number }).arcAlt * 1)
       .arcStroke(() => [0.32, 0.28, 0.3][Math.round(Math.random() * 2)])
-      .arcDashLength(defaultProps.arcLength)
+      .arcDashLength(globeConfig.arcLength || defaultProps.arcLength)
       .arcDashInitialGap((e) => (e as { order: number }).order * 1)
       .arcDashGap(15)
-      .arcDashAnimateTime(() => defaultProps.arcTime);
+      .arcDashAnimateTime(() => globeConfig.arcTime || defaultProps.arcTime);
 
     globeRef.current
       .pointsData(filteredPoints)
       .pointColor((e) => (e as { color: string }).color)
       .pointsMerge(true)
       .pointAltitude(0.0)
-      .pointRadius(2);
+      .pointRadius(globeConfig.pointSize || defaultProps.pointSize);
 
     globeRef.current
       .ringsData([])
-      .ringColor(() => defaultProps.polygonColor)
-      .ringMaxRadius(defaultProps.maxRings)
+      .ringColor(() => globeConfig.polygonColor || defaultProps.polygonColor)
+      .ringMaxRadius(globeConfig.maxRings || defaultProps.maxRings)
       .ringPropagationSpeed(RING_PROPAGATION_SPEED)
       .ringRepeatPeriod(
-        (defaultProps.arcTime * defaultProps.arcLength) / defaultProps.rings,
+        ((globeConfig.arcTime || defaultProps.arcTime) * (globeConfig.arcLength || defaultProps.arcLength)) / (globeConfig.rings || defaultProps.rings),
       );
   }, [
     isInitialized,
     data,
-    defaultProps.pointSize,
-    defaultProps.showAtmosphere,
-    defaultProps.atmosphereColor,
-    defaultProps.atmosphereAltitude,
-    defaultProps.polygonColor,
-    defaultProps.arcLength,
-    defaultProps.arcTime,
-    defaultProps.rings,
-    defaultProps.maxRings,
+    globeConfig.pointSize,
+    globeConfig.showAtmosphere,
+    globeConfig.atmosphereColor,
+    globeConfig.atmosphereAltitude,
+    globeConfig.polygonColor,
+    globeConfig.arcLength,
+    globeConfig.arcTime,
+    globeConfig.rings,
+    globeConfig.maxRings,
   ]);
 
   // Handle rings animation with cleanup

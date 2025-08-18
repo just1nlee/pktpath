@@ -20,21 +20,25 @@ const World = dynamic(() => import("@/components/ui/globe").then(mod => ({ defau
 
 // Move GLOBE_CONFIG outside component to prevent recreation
 const GLOBE_CONFIG = {
-  globeColor: "#1d072e",
+  globeColor: "#112337",
   showAtmosphere: false,
   atmosphereColor: "#ffffff",
   atmosphereAltitude: 0.1,
+  emissive: "#ffffff",
+  emissiveIntensity: 0.05,
   polygonColor: "rgba(255,255,255,0.7)",
   ambientLight: "#ffffff",
-  directionalLeftLight: "#ffffff",
+  directionalLeftLight: "#062056",
   directionalTopLight: "#ffffff",
   pointLight: "#ffffff",
+  initialPosition: { lat: 22.3193, lng: 114.1694 },
   autoRotate: true,
-  autoRotateSpeed: 0.5,
+  autoRotateSpeed: 0.35,
   arcTime: 1000,        // Duration of arc animation
   arcLength: 0.9,       // Length of the arc
   rings: 1,             // Number of rings per point
   maxRings: 3,          // Maximum rings
+  pointSize: 1,         // Size of the point dots
 };
 
 // Create a memoized wrapper component outside
@@ -125,9 +129,6 @@ export default function Home() {
 
       console.log(`Found ${validHops.length} hops with valid coordinates out of ${data.hops.length} total hops`);
 
-      // Color array for different hop segments
-      const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#ffeaa7', '#dda0dd'];
-      
       // Format data for the globe with connected path and different colors
       const positions: Position[] = [];
       
@@ -137,7 +138,7 @@ export default function Home() {
       // Create arcs connecting all points in sequence
       for (let i = 0; i < validHops.length; i++) {
         const hop = validHops[i];
-        const colors = ["#06b6d4", "#3b82f6", "#6366f1"];
+        const colors = ["#E4DBA0", "#E5BB63", "#E07432"];
         
         if (i === 0) {
           // First arc: from start location to first hop
