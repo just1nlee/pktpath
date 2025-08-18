@@ -21,7 +21,7 @@ const World = dynamic(() => import("@/components/ui/globe").then(mod => ({ defau
 // Move GLOBE_CONFIG outside component to prevent recreation
 const GLOBE_CONFIG = {
   globeColor: "#1d072e",
-  showAtmosphere: true,
+  showAtmosphere: false,
   atmosphereColor: "#ffffff",
   atmosphereAltitude: 0.1,
   polygonColor: "rgba(255,255,255,0.7)",
@@ -29,7 +29,7 @@ const GLOBE_CONFIG = {
   directionalLeftLight: "#ffffff",
   directionalTopLight: "#ffffff",
   pointLight: "#ffffff",
-  autoRotate: true,
+  autoRotate: false,
   autoRotateSpeed: 1,
 };
 
@@ -117,6 +117,7 @@ export default function Home() {
 
       // Update state
       setTracerouteData(positions);
+      setTarget("");
       
       // Show success message
       if (validHops.length === 0) {
@@ -178,7 +179,7 @@ export default function Home() {
               value={target}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
-              className="flex-1"
+              className="flex-1 text-white"
             />
             <Button 
               onClick={handleSubmit}
