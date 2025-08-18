@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from 'next/dynamic';
-import React from "react";
+import React, { useEffect } from "react";
 import { motion } from "motion/react";
 import type { Position } from "@/components/ui/globe";
 import { useState, useMemo, useCallback } from 'react';
@@ -29,8 +29,12 @@ const GLOBE_CONFIG = {
   directionalLeftLight: "#ffffff",
   directionalTopLight: "#ffffff",
   pointLight: "#ffffff",
-  autoRotate: false,
-  autoRotateSpeed: 1,
+  autoRotate: true,
+  autoRotateSpeed: 0.5,
+  arcTime: 1000,        // Duration of arc animation (same as reference)
+  arcLength: 0.9,       // Length of the arc
+  rings: 1,             // Number of rings per point
+  maxRings: 3,          // Maximum rings
 };
 
 // Create a memoized wrapper component outside
@@ -45,6 +49,25 @@ export default function Home() {
   const [tracerouteData, setTracerouteData] = useState<Position[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [userLocation, setUserLocation] = useState({ lat: 45.4871, lng: -122.8033 }); // Default
+
+  // Get user location on component mount
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+        },
+        (error) => {
+          console.log("Geolocation error:", error);
+          // Keep default location
+        }
+      );
+    }
+  }, []);
 
   // Memoize the traceroute data to prevent unnecessary re-renders
   const memoizedTracerouteData = useMemo(() => {
@@ -102,21 +125,54 @@ export default function Home() {
 
       console.log(`Found ${validHops.length} hops with valid coordinates out of ${data.hops.length} total hops`);
 
-      // Format data for the globe
-      const positions: Position[] = validHops.map((hop: any, index: number) => ({
-        order: index,
-        startLat: hop.lat,
-        startLng: hop.lng,
-        endLat: hop.lat,
-        endLng: hop.lng,
-        arcAlt: 0.1,
-        color: '#ff6b6b'
-      }));
+      // Color array for different hop segments
+      const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#ffeaa7', '#dda0dd'];
+      
+      // Format data for the globe with connected path and different colors
+      const positions: Position[] = [];
+      
+      // Add your starting location (customize this to your location)
+      const startLocation = userLocation;
+      
+      // Create arcs connecting all points in sequence
+      for (let i = 0; i < validHops.length; i++) {
+        const hop = validHops[i];
+        const colors = ["#06b6d4", "#3b82f6", "#6366f1"];
+        
+        if (i === 0) {
+          // First arc: from start location to first hop
+          positions.push({
+            order: i,
+            startLat: startLocation.lat,
+            startLng: startLocation.lng,
+            endLat: hop.lat,
+            endLng: hop.lng,
+            arcAlt: 0.1,
+            color: colors[Math.floor(Math.random() * (colors.length - 1))],
+
+          });
+        } else {
+          // Subsequent arcs: from previous hop to current hop
+          const previousHop = validHops[i - 1];
+          positions.push({
+            order: i,
+            startLat: previousHop.lat,
+            startLng: previousHop.lng,
+            endLat: hop.lat,
+            endLng: hop.lng,
+            arcAlt: 0.1,
+            color: colors[Math.floor(Math.random() * (colors.length - 1))],
+
+          });
+        }
+      }
 
       console.log("Formatted positions for globe:", positions); // Debug log
 
       // Update state
       setTracerouteData(positions);
+      
+      // Clear the input field after successful submission
       setTarget("");
       
       // Show success message
@@ -133,7 +189,7 @@ export default function Home() {
     } finally {
       setIsLoading(false);
     }
-  }, [target]);
+  }, [target, userLocation]);
 
   // Memoize the input change handler
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -150,14 +206,6 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-black">
       <div className="max-w-6xl mx-auto p-8">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">
-            pktpath
-          </h1>
-          <p className="text-lg text-gray-300">
-            Visualize your packet's journey across the internet
-          </p>
-        </div>
 
         {/* Globe container with fixed aspect ratio to prevent shape distortion */}
         <div className="relative w-full mb-4" style={{ aspectRatio: '1/1', maxHeight: '600px' }} data-globe-container>
