@@ -250,8 +250,30 @@ export function World(props: WorldProps) {
   const { globeConfig } = props;
   const scene = new Scene();
   scene.fog = new Fog(0xffffff, 400, 2000);
+  
+  // Use dynamic aspect ratio for better shape consistency
+  const [aspectRatio, setAspectRatio] = useState(1);
+  
+  useEffect(() => {
+    const updateAspectRatio = () => {
+      const container = document.querySelector('[data-globe-container]');
+      if (container) {
+        const rect = container.getBoundingClientRect();
+        setAspectRatio(rect.width / rect.height);
+      }
+    };
+    
+    updateAspectRatio();
+    window.addEventListener('resize', updateAspectRatio);
+    return () => window.removeEventListener('resize', updateAspectRatio);
+  }, []);
+  
   return (
-    <Canvas scene={scene} camera={new PerspectiveCamera(50, aspect, 180, 1800)}>
+    <Canvas 
+      scene={scene} 
+      camera={new PerspectiveCamera(50, aspectRatio, 180, 1800)}
+      data-globe-container
+    >
       <WebGLRendererConfig />
       <ambientLight color={globeConfig.ambientLight} intensity={0.6} />
       <directionalLight

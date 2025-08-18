@@ -4,12 +4,11 @@ import dynamic from 'next/dynamic';
 import React from "react";
 import { motion } from "motion/react";
 import type { Position } from "@/components/ui/globe";
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 
-
-// Dynamically import the globe component with SSR disabled
+// Move dynamic import completely outside (no hooks here)
 const World = dynamic(() => import("@/components/ui/globe").then(mod => ({ default: mod.World })), {
   ssr: false,
   loading: () => (
@@ -19,6 +18,7 @@ const World = dynamic(() => import("@/components/ui/globe").then(mod => ({ defau
   )
 });
 
+// Move GLOBE_CONFIG outside component to prevent recreation
 const GLOBE_CONFIG = {
   globeColor: "#1d072e",
   showAtmosphere: true,
@@ -33,13 +33,25 @@ const GLOBE_CONFIG = {
   autoRotateSpeed: 1,
 };
 
+// Create a memoized wrapper component outside
+const MemoizedWorld = React.memo(({ globeConfig, data }: { globeConfig: any, data: Position[] }) => {
+  return <World globeConfig={globeConfig} data={data} />;
+});
+
+MemoizedWorld.displayName = 'MemoizedWorld';
+
 export default function Home() {
   const [target, setTarget] = useState("");
   const [tracerouteData, setTracerouteData] = useState<Position[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async () => {
+  // Memoize the traceroute data to prevent unnecessary re-renders
+  const memoizedTracerouteData = useMemo(() => {
+    return tracerouteData;
+  }, [tracerouteData]);
+
+  const handleSubmit = useCallback(async () => {
     // Check user input
     if (!target.trim()) {
       setError("Please enter a target");
@@ -120,7 +132,19 @@ export default function Home() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [target]);
+
+  // Memoize the input change handler
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setTarget(e.target.value);
+  }, []);
+
+  // Memoize the key down handler
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleSubmit();
+    }
+  }, [handleSubmit]);
 
   return (
     <div className="min-h-screen bg-black">
@@ -134,26 +158,40 @@ export default function Home() {
           </p>
         </div>
 
-        <div className="w-full h-[600px]">
-          <World globeConfig={GLOBE_CONFIG} data={tracerouteData} />
+        {/* Globe container with fixed aspect ratio to prevent shape distortion */}
+        <div className="relative w-full mb-4" style={{ aspectRatio: '1/1', maxHeight: '600px' }} data-globe-container>
+          <div className="absolute inset-0">
+            <MemoizedWorld 
+              key={memoizedTracerouteData.length}
+              globeConfig={GLOBE_CONFIG} 
+              data={memoizedTracerouteData} 
+            />
+          </div>
         </div>
-        <div className="flex w-full max-w-sm items-center gap-2">
-          <Input 
-            type="text"
-            placeholder="Enter a domain or IP address" 
-            value={target}
-            onChange={(e) => setTarget(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-          />
-          <Button 
-            onClick={handleSubmit}
-            disabled={isLoading}
-            variant="outline"
-          >
-            {isLoading ? 'Running...' : 'Submit'}
-          </Button>
+        
+        {/* Input section */}
+        <div className="flex flex-col items-center gap-4">
+          <div className="flex w-full max-w-sm items-center gap-2">
+            <Input 
+              type="text"
+              placeholder="Enter a domain or IP address" 
+              value={target}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              className="flex-1"
+            />
+            <Button 
+              onClick={handleSubmit}
+              disabled={isLoading}
+              variant="outline"
+              className="whitespace-nowrap"
+            >
+              {isLoading ? 'Running...' : 'Submit'}
+            </Button>
+          </div>
+          
           {error && (
-            <div className="text-center mt-4">
+            <div className="text-center">
               <p className="text-red-400 text-sm">{error}</p>
             </div>
           )}
