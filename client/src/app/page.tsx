@@ -18,29 +18,6 @@ const World = dynamic(() => import("@/components/ui/globe").then(mod => ({ defau
   )
 });
 
-// Move GLOBE_CONFIG outside component to prevent recreation
-const GLOBE_CONFIG = {
-  globeColor: "#112337",
-  showAtmosphere: false,
-  atmosphereColor: "#ffffff",
-  atmosphereAltitude: 0.1,
-  emissive: "#ffffff",
-  emissiveIntensity: 0.05,
-  polygonColor: "rgba(255,255,255,0.7)",
-  ambientLight: "#ffffff",
-  directionalLeftLight: "#062056",
-  directionalTopLight: "#ffffff",
-  pointLight: "#ffffff",
-  initialPosition: { lat: 22.3193, lng: 114.1694 },
-  autoRotate: true,
-  autoRotateSpeed: 0.35,
-  arcTime: 1000,        // Duration of arc animation
-  arcLength: 0.9,       // Length of the arc
-  rings: 1,             // Number of rings per point
-  maxRings: 3,          // Maximum rings
-  pointSize: 1,         // Size of the point dots
-};
-
 // Create a memoized wrapper component outside
 const MemoizedWorld = React.memo(({ globeConfig, data }: { globeConfig: any, data: Position[] }) => {
   return <World globeConfig={globeConfig} data={data} />;
@@ -213,7 +190,7 @@ export default function Home() {
           <div className="absolute inset-0">
             <MemoizedWorld 
               key={memoizedTracerouteData.length}
-              globeConfig={GLOBE_CONFIG} 
+              globeConfig={{}} 
               data={memoizedTracerouteData} 
             />
           </div>

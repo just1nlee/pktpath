@@ -53,6 +53,10 @@ export type GlobeConfig = {
   };
   autoRotate?: boolean;
   autoRotateSpeed?: number;
+  focusPosition?: {
+    lat: number;
+    lng: number;
+  };
 };
 
 interface WorldProps {
@@ -70,14 +74,14 @@ export function Globe({ globeConfig, data }: WorldProps) {
   const defaultProps = {
     pointSize: 1,
     atmosphereColor: "#ffffff",
-    showAtmosphere: true,
+    showAtmosphere: false,
     atmosphereAltitude: 0.1,
     polygonColor: "rgba(255,255,255,0.7)",
-    globeColor: "#1d072e",
-    emissive: "#000000",
-    emissiveIntensity: 0.1,
-    shininess: 0.9,
-    arcTime: 2000,
+    globeColor: "#112337",
+    emissive: "#ffffff",
+    emissiveIntensity: 0.05,
+    shininess: 0.5,
+    arcTime: 1000,
     arcLength: 0.9,
     rings: 1,
     maxRings: 3,
@@ -103,19 +107,19 @@ export function Globe({ globeConfig, data }: WorldProps) {
       emissiveIntensity: number;
       shininess: number;
     };
-    globeMaterial.color = new Color(globeConfig.globeColor || defaultProps.globeColor);
-    globeMaterial.emissive = new Color(globeConfig.emissive || defaultProps.emissive);
-    globeMaterial.emissiveIntensity = globeConfig.emissiveIntensity || defaultProps.emissiveIntensity;
-    globeMaterial.shininess = globeConfig.shininess || defaultProps.shininess;
+    globeMaterial.color = new Color(defaultProps.globeColor);
+    globeMaterial.emissive = new Color(defaultProps.emissive);
+    globeMaterial.emissiveIntensity = defaultProps.emissiveIntensity;
+    globeMaterial.shininess = defaultProps.shininess;
   }, [
     isInitialized,
-    globeConfig.globeColor,
-    globeConfig.emissive,
-    globeConfig.emissiveIntensity,
-    globeConfig.shininess,
+    defaultProps.globeColor,
+    defaultProps.emissive,
+    defaultProps.emissiveIntensity,
+    defaultProps.shininess,
   ]);
 
-  // Build data when globe is initialized or when data or config changes
+  // Build data when globe is initialized or when data changes
   useEffect(() => {
     if (!globeRef.current || !isInitialized || !data) return;
 
@@ -125,14 +129,14 @@ export function Globe({ globeConfig, data }: WorldProps) {
       const arc = arcs[i];
       const rgb = hexToRgb(arc.color) as { r: number; g: number; b: number };
       points.push({
-        size: globeConfig.pointSize || defaultProps.pointSize,
+        size: defaultProps.pointSize,
         order: arc.order,
         color: arc.color,
         lat: arc.startLat,
         lng: arc.startLng,
       });
       points.push({
-        size: globeConfig.pointSize || defaultProps.pointSize,
+        size: defaultProps.pointSize,
         order: arc.order,
         color: arc.color,
         lat: arc.endLat,
@@ -154,10 +158,10 @@ export function Globe({ globeConfig, data }: WorldProps) {
       .hexPolygonsData(countries.features)
       .hexPolygonResolution(3)
       .hexPolygonMargin(0.7)
-      .showAtmosphere(globeConfig.showAtmosphere !== undefined ? globeConfig.showAtmosphere : defaultProps.showAtmosphere)
-      .atmosphereColor(globeConfig.atmosphereColor || defaultProps.atmosphereColor)
-      .atmosphereAltitude(globeConfig.atmosphereAltitude || defaultProps.atmosphereAltitude)
-      .hexPolygonColor(() => globeConfig.polygonColor || defaultProps.polygonColor);
+      .showAtmosphere(defaultProps.showAtmosphere)
+      .atmosphereColor(defaultProps.atmosphereColor)
+      .atmosphereAltitude(defaultProps.atmosphereAltitude)
+      .hexPolygonColor(() => defaultProps.polygonColor);
 
     globeRef.current
       .arcsData(data)
@@ -168,38 +172,38 @@ export function Globe({ globeConfig, data }: WorldProps) {
       .arcColor((e: any) => (e as { color: string }).color)
       .arcAltitude((e) => (e as { arcAlt: number }).arcAlt * 1)
       .arcStroke(() => [0.32, 0.28, 0.3][Math.round(Math.random() * 2)])
-      .arcDashLength(globeConfig.arcLength || defaultProps.arcLength)
+      .arcDashLength(defaultProps.arcLength)
       .arcDashInitialGap((e) => (e as { order: number }).order * 1)
       .arcDashGap(15)
-      .arcDashAnimateTime(() => globeConfig.arcTime || defaultProps.arcTime);
+      .arcDashAnimateTime(() => defaultProps.arcTime);
 
     globeRef.current
       .pointsData(filteredPoints)
       .pointColor((e) => (e as { color: string }).color)
       .pointsMerge(true)
       .pointAltitude(0.0)
-      .pointRadius(globeConfig.pointSize || defaultProps.pointSize);
+      .pointRadius(defaultProps.pointSize);
 
     globeRef.current
       .ringsData([])
-      .ringColor(() => globeConfig.polygonColor || defaultProps.polygonColor)
-      .ringMaxRadius(globeConfig.maxRings || defaultProps.maxRings)
+      .ringColor(() => defaultProps.polygonColor)
+      .ringMaxRadius(defaultProps.maxRings)
       .ringPropagationSpeed(RING_PROPAGATION_SPEED)
       .ringRepeatPeriod(
-        ((globeConfig.arcTime || defaultProps.arcTime) * (globeConfig.arcLength || defaultProps.arcLength)) / (globeConfig.rings || defaultProps.rings),
+        (defaultProps.arcTime * defaultProps.arcLength) / defaultProps.rings,
       );
   }, [
     isInitialized,
     data,
-    globeConfig.pointSize,
-    globeConfig.showAtmosphere,
-    globeConfig.atmosphereColor,
-    globeConfig.atmosphereAltitude,
-    globeConfig.polygonColor,
-    globeConfig.arcLength,
-    globeConfig.arcTime,
-    globeConfig.rings,
-    globeConfig.maxRings,
+    defaultProps.pointSize,
+    defaultProps.showAtmosphere,
+    defaultProps.atmosphereColor,
+    defaultProps.atmosphereAltitude,
+    defaultProps.polygonColor,
+    defaultProps.arcLength,
+    defaultProps.arcTime,
+    defaultProps.rings,
+    defaultProps.maxRings,
   ]);
 
   // Handle rings animation with cleanup
@@ -250,30 +254,8 @@ export function World(props: WorldProps) {
   const { globeConfig } = props;
   const scene = new Scene();
   scene.fog = new Fog(0xffffff, 400, 2000);
-  
-  // Use dynamic aspect ratio for better shape consistency
-  const [aspectRatio, setAspectRatio] = useState(1);
-  
-  useEffect(() => {
-    const updateAspectRatio = () => {
-      const container = document.querySelector('[data-globe-container]');
-      if (container) {
-        const rect = container.getBoundingClientRect();
-        setAspectRatio(rect.width / rect.height);
-      }
-    };
-    
-    updateAspectRatio();
-    window.addEventListener('resize', updateAspectRatio);
-    return () => window.removeEventListener('resize', updateAspectRatio);
-  }, []);
-  
   return (
-    <Canvas 
-      scene={scene} 
-      camera={new PerspectiveCamera(50, aspectRatio, 180, 1800)}
-      data-globe-container
-    >
+    <Canvas scene={scene} camera={new PerspectiveCamera(50, aspect, 180, 1800)}>
       <WebGLRendererConfig />
       <ambientLight color={globeConfig.ambientLight} intensity={0.6} />
       <directionalLight
@@ -295,10 +277,10 @@ export function World(props: WorldProps) {
         enableZoom={false}
         minDistance={cameraZ}
         maxDistance={cameraZ}
-        autoRotateSpeed={globeConfig.autoRotateSpeed || 1}
-        autoRotate={globeConfig.autoRotate || false}
-        minPolarAngle={0.1}
-        maxPolarAngle={Math.PI - 0.1}
+        autoRotateSpeed={1}
+        autoRotate={true}
+        minPolarAngle={Math.PI / 3.5}
+        maxPolarAngle={Math.PI - Math.PI / 3}
       />
     </Canvas>
   );
