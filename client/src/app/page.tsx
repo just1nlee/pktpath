@@ -31,7 +31,7 @@ const GLOBE_CONFIG = {
   pointLight: "#ffffff",
   autoRotate: true,
   autoRotateSpeed: 0.5,
-  arcTime: 1000,        // Duration of arc animation (same as reference)
+  arcTime: 1000,        // Duration of arc animation
   arcLength: 0.9,       // Length of the arc
   rings: 1,             // Number of rings per point
   maxRings: 3,          // Maximum rings

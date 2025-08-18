@@ -120,3 +120,16 @@
     @apply bg-background text-foreground;
   }
 }
+
+html, body {
+  overflow: hidden;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+/* Prevent scrolling on the main container */
+#__next {
+  height: 100vh;
+  overflow: hidden;
+}
