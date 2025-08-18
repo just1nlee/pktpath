@@ -297,8 +297,8 @@ export function World(props: WorldProps) {
         maxDistance={cameraZ}
         autoRotateSpeed={globeConfig.autoRotateSpeed || 1}
         autoRotate={globeConfig.autoRotate || false}
-        minPolarAngle={Math.PI / 3.5}
-        maxPolarAngle={Math.PI - Math.PI / 3}
+        minPolarAngle={0.1}
+        maxPolarAngle={Math.PI - 0.1}
       />
     </Canvas>
   );
