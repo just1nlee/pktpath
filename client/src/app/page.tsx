@@ -50,8 +50,8 @@ export default function Home() {
     setIsLoading(true);
     setError(null);
 
-    // Make API request to backend
     try {
+      // Make API request to backend
       const response = await fetch("http://localhost:8000/api/v1/traceroute/", {
         method: "POST",
         headers: {
@@ -59,20 +59,39 @@ export default function Home() {
         },
         body: JSON.stringify({ target: target.trim() }),
       });
-      const data = await response.json();
 
-      // Verify response
+      // Check if response is ok
       if (!response.ok) {
-        throw new Error(data.detail || "Failed to run traceroute");
-      }
-      if (!data.success) {
-        throw new Error(data.error || "Traceroute failed");
+        const errorData = await response.json();
+        throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
       }
 
-      // Format data for GitGlobe
-      const positions: Position[] = data.hops
-      .filter((hop: any) => hop.lat && hop.lng)
-      .map((hop: any, index: number) => ({
+      // Parse the JSON response
+      const data = await response.json();
+      console.log("Raw API response:", data); // Debug log
+
+      // Validate the response structure
+      if (!data.hops || !Array.isArray(data.hops)) {
+        throw new Error("Invalid response format: missing or invalid hops array");
+      }
+
+      // Parse and filter hops with valid coordinates
+      const validHops = data.hops.filter((hop: any) => {
+        // Check if hop has valid coordinates
+        const hasValidCoords = hop.lat !== null && hop.lng !== null && 
+                             !isNaN(hop.lat) && !isNaN(hop.lng);
+        
+        if (!hasValidCoords) {
+          console.log(`Skipping hop ${hop.hop}: ${hop.ip} - no valid coordinates`);
+        }
+        
+        return hasValidCoords;
+      });
+
+      console.log(`Found ${validHops.length} hops with valid coordinates out of ${data.hops.length} total hops`);
+
+      // Format data for the globe
+      const positions: Position[] = validHops.map((hop: any, index: number) => ({
         order: index,
         startLat: hop.lat,
         startLng: hop.lng,
@@ -82,12 +101,22 @@ export default function Home() {
         color: '#ff6b6b'
       }));
 
+      console.log("Formatted positions for globe:", positions); // Debug log
+
       // Update state
       setTracerouteData(positions);
+      
+      // Show success message
+      if (validHops.length === 0) {
+        setError("No hops with valid coordinates found. Try a different target.");
+      } else {
+        setError(null);
+      }
+
     } catch (err) {
+      console.error("Error parsing traceroute response:", err);
       setError(err instanceof Error ? err.message : 'An error occurred');
       setTracerouteData([]);
-      // Revert loading state
     } finally {
       setIsLoading(false);
     }

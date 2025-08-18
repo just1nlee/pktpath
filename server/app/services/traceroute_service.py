@@ -11,7 +11,7 @@ class TracerouteService:
         Run traceroute command and return structured results with geolocation data
         """
         try:
-            # Run traceroute command with more lenient settings
+            # Run traceroute command with optimized settings
             result = subprocess.run(
                 [
                     "traceroute", 
@@ -39,19 +39,44 @@ class TracerouteService:
             for line in lines[1:]:
                 if line.strip():
                     hop_data = TracerouteService._parse_hop_line(line)
-                    if hop_data and hop_data.get("ip") != "*":
-                        # Add geolocation data if requested
-                        if include_geolocation:
+                    if hop_data:
+                        # Only add geolocation for valid IPs (not "*")
+                        if include_geolocation and hop_data.get("ip") != "*":
                             geo_data = GeolocationService.get_location(hop_data["ip"])
                             hop_data["geolocation"] = geo_data
                             
-                            # Add lat/lng for frontend compatibility
-                            hop_data["lat"] = geo_data.get("latitude")
-                            hop_data["lng"] = geo_data.get("longitude")
+                            # Convert string coordinates to numbers
+                            lat = geo_data.get("latitude")
+                            lng = geo_data.get("longitude")
                             
-                        hops.append(hop_data)
-                    elif hop_data:
-                        # Add hops with no response (marked as "*")
+                            if lat is not None and lng is not None:
+                                try:
+                                    hop_data["lat"] = float(lat)
+                                    hop_data["lng"] = float(lng)
+                                except (ValueError, TypeError):
+                                    hop_data["lat"] = None
+                                    hop_data["lng"] = None
+                            else:
+                                hop_data["lat"] = None
+                                hop_data["lng"] = None
+                                
+                        elif hop_data.get("ip") == "*":
+                            # Add empty geolocation for "*" hops
+                            hop_data["geolocation"] = {
+                                "latitude": None,
+                                "longitude": None,
+                                "country": None,
+                                "country_code": None,
+                                "city": None,
+                                "region": None,
+                                "postal_code": None,
+                                "timezone": None,
+                                "isp": None,
+                                "source": "no-response"
+                            }
+                            hop_data["lat"] = None
+                            hop_data["lng"] = None
+                        
                         hops.append(hop_data)
             
             # If no hops were parsed, return an error
