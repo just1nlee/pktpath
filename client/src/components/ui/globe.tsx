@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { Color, Scene, Fog, PerspectiveCamera, Vector3 } from "three";
 import ThreeGlobe from "three-globe";
 import { useThree, Canvas, extend } from "@react-three/fiber";
@@ -71,7 +71,8 @@ export function Globe({ globeConfig, data }: WorldProps) {
   const groupRef = useRef<any>(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  const defaultProps = {
+  // Memoize defaultProps to prevent recreation on every render
+  const defaultProps = useMemo(() => ({
     pointSize: 1,
     atmosphereColor: "#ffffff",
     showAtmosphere: false,
@@ -86,7 +87,7 @@ export function Globe({ globeConfig, data }: WorldProps) {
     rings: 1,
     maxRings: 3,
     ...globeConfig,
-  };
+  }), [globeConfig]);
 
   // Initialize globe only once
   useEffect(() => {
@@ -252,23 +253,36 @@ export function WebGLRendererConfig() {
 
 export function World(props: WorldProps) {
   const { globeConfig } = props;
-  const scene = new Scene();
-  scene.fog = new Fog(0xffffff, 400, 2000);
+  
+  // Memoize the scene and camera to prevent recreation on every render
+  const scene = useMemo(() => {
+    const newScene = new Scene();
+    newScene.fog = new Fog(0xffffff, 400, 2000);
+    return newScene;
+  }, []);
+  
+  const camera = useMemo(() => new PerspectiveCamera(50, aspect, 180, 1800), []);
+  
+  // Memoize Vector3 objects to prevent recreation on every render
+  const directionalLeftLightPosition = useMemo(() => new Vector3(-400, 100, 400), []);
+  const directionalTopLightPosition = useMemo(() => new Vector3(-200, 500, 200), []);
+  const pointLightPosition = useMemo(() => new Vector3(-200, 500, 200), []);
+  
   return (
-    <Canvas scene={scene} camera={new PerspectiveCamera(50, aspect, 180, 1800)}>
+    <Canvas scene={scene} camera={camera}>
       <WebGLRendererConfig />
-      <ambientLight color={globeConfig.ambientLight} intensity={0.6} />
+      <ambientLight color={globeConfig.ambientLight || "#ffffff"} intensity={0.6} />
       <directionalLight
-        color={globeConfig.directionalLeftLight}
-        position={new Vector3(-400, 100, 400)}
+        color={globeConfig.directionalLeftLight || "#ffffff"}
+        position={directionalLeftLightPosition}
       />
       <directionalLight
-        color={globeConfig.directionalTopLight}
-        position={new Vector3(-200, 500, 200)}
+        color={globeConfig.directionalTopLight || "#ffffff"}
+        position={directionalTopLightPosition}
       />
       <pointLight
-        color={globeConfig.pointLight}
-        position={new Vector3(-200, 500, 200)}
+        color={globeConfig.pointLight || "#ffffff"}
+        position={pointLightPosition}
         intensity={0.8}
       />
       <Globe {...props} />

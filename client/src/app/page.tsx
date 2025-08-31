@@ -32,14 +32,24 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState({ lat: 45.4871, lng: -122.8033 }); // Default
 
+  // Memoize the globe configuration to prevent unnecessary re-renders
+  const memoizedGlobeConfig = useMemo(() => ({}), []);
+
   // Get user location on component mount
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setUserLocation({
+          const newLocation = {
             lat: position.coords.latitude,
             lng: position.coords.longitude
+          };
+          // Only update if location actually changed
+          setUserLocation(prevLocation => {
+            if (prevLocation.lat !== newLocation.lat || prevLocation.lng !== newLocation.lng) {
+              return newLocation;
+            }
+            return prevLocation;
           });
         },
         (error) => {
@@ -50,14 +60,14 @@ export default function Home() {
     }
   }, []);
 
-  // Memoize the traceroute data to prevent unnecessary re-renders
-  const memoizedTracerouteData = useMemo(() => {
-    return tracerouteData;
-  }, [tracerouteData]);
 
-  const handleSubmit = useCallback(async () => {
+
+  const handleSubmit = useCallback(async (inputValue?: string) => {
+    // Use provided input value or fall back to target state
+    const currentTarget = inputValue || target;
+    
     // Check user input
-    if (!target.trim()) {
+    if (!currentTarget.trim()) {
       setError("Please enter a target");
       return;
     }
@@ -73,7 +83,7 @@ export default function Home() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ target: target.trim() }),
+        body: JSON.stringify({ target: currentTarget.trim() }),
       });
 
       // Check if response is ok
@@ -167,7 +177,7 @@ export default function Home() {
     } finally {
       setIsLoading(false);
     }
-  }, [target, userLocation]);
+  }, [userLocation]);
 
   // Memoize the input change handler
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -177,7 +187,7 @@ export default function Home() {
   // Memoize the key down handler
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
-      handleSubmit();
+      handleSubmit(e.currentTarget.value);
     }
   }, [handleSubmit]);
 
@@ -189,9 +199,8 @@ export default function Home() {
         <div className="relative w-full mb-4" style={{ aspectRatio: '1/1', maxHeight: '600px' }} data-globe-container>
           <div className="absolute inset-0">
             <MemoizedWorld 
-              key={memoizedTracerouteData.length}
-              globeConfig={{}} 
-              data={memoizedTracerouteData} 
+              globeConfig={memoizedGlobeConfig} 
+              data={tracerouteData} 
             />
           </div>
         </div>
@@ -208,7 +217,7 @@ export default function Home() {
               className="flex-1 text-white"
             />
             <Button 
-              onClick={handleSubmit}
+              onClick={() => handleSubmit()}
               disabled={isLoading}
               variant="outline"
               className="whitespace-nowrap"
